@@ -102,7 +102,12 @@ web:
 ```
 > 启用后访问 `http://<服务器IP>:8080`，仅限内网使用，**切勿暴露至公网**。
 
----
+### Web 管理后台 展示
+<img width="2554" height="1356" alt="1" src="https://github.com/user-attachments/assets/02609c93-027c-42e8-b80c-ad3f1ed7c3a0" />
+<img width="2536" height="1308" alt="2" src="https://github.com/user-attachments/assets/785b3174-8458-46ac-a71d-b1652bf5489b" />
+<img width="2538" height="1219" alt="3" src="https://github.com/user-attachments/assets/9c264364-3db4-4bde-969a-6b0c8ff53d5a" />
+<img width="2523" height="1258" alt="4" src="https://github.com/user-attachments/assets/3bfbeaa8-0286-481a-904c-637f8ccec68c" />
+<img width="2536" height="1362" alt="5" src="https://github.com/user-attachments/assets/4febec4b-f7e4-4fef-bc19-30499ac022fa" />
 
 ## 软依赖说明
 
