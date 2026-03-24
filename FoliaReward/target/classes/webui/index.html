@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FoliaReward 管理后台</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #22263a;
+    --border: #2d3250;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #48bb78;
+    --yellow: #ecc94b;
+    --red: #fc8181;
+    --text: #e2e8f0;
+    --muted: #718096;
+    --radius: 10px;
+    --shadow: 0 4px 24px rgba(0,0,0,.4);
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── 顶栏 ── */
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; height: 56px;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; color: var(--accent); }
+  header h1 span { color: var(--text); }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  #tokenInput {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text); font-size: 13px; width: 220px;
+  }
+  #tokenInput::placeholder { color: var(--muted); }
+  #statusDot {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--muted);
+    transition: background .3s;
+  }
+  #statusDot.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  #statusDot.error  { background: var(--red); }
+  #statusText { font-size: 13px; color: var(--muted); }
+
+  /* ── 布局 ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── 侧边栏 ── */
+  nav {
+    width: 200px; flex-shrink: 0;
+    background: var(--bg2); border-right: 1px solid var(--border);
+    padding: 16px 0; display: flex; flex-direction: column; gap: 4px;
+  }
+  nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; color: var(--muted); text-decoration: none;
+    font-size: 14px; border-radius: 0; cursor: pointer;
+    transition: all .15s; border-left: 3px solid transparent;
+  }
+  nav a:hover { color: var(--text); background: var(--bg3); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(108,99,255,.1); }
+  nav a .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* ── 主内容 ── */
+  main { flex: 1; overflow-y: auto; padding: 28px; }
+
+  /* ── 页面 ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 20px; color: var(--text); }
+
+  /* ── 卡片 ── */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── 统计卡片行 ── */
+  .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-card {
+    flex: 1; min-width: 160px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-card .value { font-size: 32px; font-weight: 700; }
+  .stat-card.accent .value { color: var(--accent); }
+  .stat-card.green  .value { color: var(--green); }
+  .stat-card.yellow .value { color: var(--yellow); }
+  .stat-card.red    .value { color: var(--red); }
+
+  /* ── 表格 ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 12px 14px; border-bottom: 1px solid rgba(45,50,80,.6); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(108,99,255,.05); }
+
+  /* ── 徽章 ── */
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .badge.green  { background: rgba(72,187,120,.15); color: var(--green); }
+  .badge.yellow { background: rgba(236,201,75,.15);  color: var(--yellow); }
+  .badge.red    { background: rgba(252,129,129,.15); color: var(--red); }
+  .badge.gray   { background: rgba(113,128,150,.15); color: var(--muted); }
+  .badge.purple { background: rgba(108,99,255,.15);  color: var(--accent); }
+
+  /* ── 按钮 ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 6px; border: none;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all .15s; text-decoration: none;
+  }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #7c74ff; }
+  .btn-danger  { background: rgba(252,129,129,.15); color: var(--red); border: 1px solid rgba(252,129,129,.3); }
+  .btn-danger:hover:not(:disabled)  { background: rgba(252,129,129,.25); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-success { background: rgba(72,187,120,.15); color: var(--green); border: 1px solid rgba(72,187,120,.3); }
+  .btn-success:hover:not(:disabled) { background: rgba(72,187,120,.25); }
+
+  /* ── 搜索框 ── */
+  .search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+  .search-bar input {
+    flex: 1; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text); font-size: 14px;
+  }
+  .search-bar input::placeholder { color: var(--muted); }
+
+  /* ── 任务卡片 ── */
+  .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .task-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .task-card h3 { font-size: 15px; font-weight: 600; }
+  .task-card .desc { font-size: 13px; color: var(--muted); }
+  .task-card .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .task-reward { font-size: 12px; color: var(--muted); margin-top: 4px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .task-reward span { color: var(--yellow); font-weight: 600; }
+
+  /* ── 模态框 ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px; width: 420px; max-width: 95vw;
+    box-shadow: var(--shadow); transform: scale(.95); transition: transform .2s;
+  }
+  .modal-overlay.open .modal { transform: scale(1); }
+  .modal h3 { font-size: 17px; margin-bottom: 16px; }
+  .modal-body { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+  .modal label { font-size: 13px; color: var(--muted); margin-bottom: 4px; display: block; }
+  .modal select, .modal input {
+    width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text); font-size: 14px;
+  }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── Toast ── */
+  #toastContainer { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 200; }
+  .toast {
+    padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;
+    box-shadow: var(--shadow); animation: slideIn .25s ease;
+    max-width: 340px;
+  }
+  .toast.success { background: rgba(72,187,120,.2); border: 1px solid var(--green); color: var(--green); }
+  .toast.error   { background: rgba(252,129,129,.2); border: 1px solid var(--red); color: var(--red); }
+  .toast.info    { background: rgba(108,99,255,.2); border: 1px solid var(--accent); color: var(--accent); }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* ── 日志 ── */
+  #logBox {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; height: 220px; overflow-y: auto; font-family: monospace;
+    font-size: 13px; color: var(--muted);
+  }
+  .log-entry { padding: 2px 0; }
+  .log-entry.ok   { color: var(--green); }
+  .log-entry.fail { color: var(--red); }
+
+  /* ── 空状态 ── */
+  .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+  .empty .icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* ── 玩家详情面板 ── */
+  .detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .player-avatar {
+    width: 48px; height: 48px; border-radius: 8px; background: var(--bg3);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+  }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .detail-item { display: flex; flex-direction: column; gap: 2px; }
+  .detail-item .label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .detail-item .val { font-size: 15px; font-weight: 600; }
+
+  /* ── 进度条 ── */
+  .progress-bar { background: var(--bg3); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 4px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s; }
+
+  /* 响应式 */
+  @media (max-width: 640px) {
+    nav { width: 52px; }
+    nav a .label { display: none; }
+    nav a { justify-content: center; padding: 12px; }
+    main { padding: 16px; }
+    .stats { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<header>
+  <h1>🎁 FoliaReward <span>管理后台</span></h1>
+  <div class="header-right">
+    <input id="tokenInput" type="password" placeholder="输入 API Token" />
+    <div id="statusDot" title="连接状态"></div>
+    <span id="statusText">未连接</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- 侧边栏 -->
+  <nav>
+    <a class="active" data-page="dashboard" onclick="showPage('dashboard',this)">
+      <span class="icon">📊</span><span class="label">仪表盘</span>
+    </a>
+    <a data-page="players" onclick="showPage('players',this)">
+      <span class="icon">👥</span><span class="label">在线玩家</span>
+    </a>
+    <a data-page="tasks" onclick="showPage('tasks',this)">
+      <span class="icon">📋</span><span class="label">任务配置</span>
+    </a>
+    <a data-page="system" onclick="showPage('system',this)">
+      <span class="icon">⚙️</span><span class="label">系统操作</span>
+    </a>
+  </nav>
+
+  <!-- 主内容 -->
+  <main>
+
+    <!-- 仪表盘 -->
+    <div id="page-dashboard" class="page active">
+      <h2>仪表盘</h2>
+      <div class="stats">
+        <div class="stat-card green">
+          <span class="label">在线玩家</span>
+          <span class="value" id="stat-players">–</span>
+        </div>
+        <div class="stat-card accent">
+          <span class="label">任务数量</span>
+          <span class="value" id="stat-tasks">–</span>
+        </div>
+        <div class="stat-card yellow">
+          <span class="label">插件版本</span>
+          <span class="value" style="font-size:18px" id="stat-version">–</span>
+        </div>
+        <div class="stat-card red">
+          <span class="label">运行时长</span>
+          <span class="value" style="font-size:18px" id="stat-uptime">–</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">数据库</span>
+          <span class="value" style="font-size:18px" id="stat-db">–</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:15px;margin-bottom:14px;color:var(--muted)">在线玩家快览</h3>
+        <div id="dash-player-list">
+          <div class="empty"><div class="icon">🌐</div>无在线玩家</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 在线玩家 -->
+    <div id="page-players" class="page">
+      <h2>在线玩家</h2>
+      <div class="search-bar">
+        <input id="playerSearch" type="text" placeholder="搜索玩家名..." oninput="filterPlayers()" />
+        <button class="btn btn-primary" onclick="loadPlayers()">🔄 刷新</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>玩家</th>
+                <th>连续签到</th>
+                <th>今日在线</th>
+                <th>已完成任务</th>
+                <th>待领取</th>
+                <th>最后签到</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="playerTableBody">
+              <tr><td colspan="7" class="empty">点击刷新加载数据</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 任务配置 -->
+    <div id="page-tasks" class="page">
+      <h2>任务配置</h2>
+      <div class="task-grid" id="taskGrid">
+        <div class="empty"><div class="icon">⏳</div>加载中...</div>
+      </div>
+    </div>
+
+    <!-- 系统操作 -->
+    <div id="page-system" class="page">
+      <h2>系统操作</h2>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <h3 style="font-size:15px;margin-bottom:12px">快速操作</h3>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="doReload()">🔄 重载配置</button>
+            <button class="btn btn-success" onclick="loadPlayers(); showPage('players', document.querySelector('[data-page=players]'))">👥 查看玩家</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="font-size:15px;margin-bottom:12px">操作日志</h3>
+          <div id="logBox"></div>
+          <div style="margin-top:10px">
+            <button class="btn btn-sm" style="border:1px solid var(--border);background:transparent;color:var(--muted)" onclick="document.getElementById('logBox').innerHTML=''">清空日志</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- 发放奖励模态框 -->
+<div id="giveModal" class="modal-overlay">
+  <div class="modal">
+    <h3>手动发放奖励</h3>
+    <div class="modal-body">
+      <div>
+        <label>目标玩家</label>
+        <input id="give-player-name" type="text" readonly style="opacity:.6"/>
+        <input id="give-player-uuid" type="hidden"/>
+      </div>
+      <div>
+        <label>选择任务奖励</label>
+        <select id="give-task-select"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="border:1px solid var(--border);background:transparent" onclick="closeModal('giveModal')">取消</button>
+      <button class="btn btn-primary" onclick="submitGiveReward()">确认发放</button>
+    </div>
+  </div>
+</div>
+
+<!-- 重置签到确认框 -->
+<div id="resetModal" class="modal-overlay">
+  <div class="modal">
+    <h3>确认重置签到</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">确定要重置 <strong id="reset-player-name" style="color:var(--text)"></strong> 的签到记录吗？操作不可撤销。</p>
+    <input id="reset-player-uuid" type="hidden"/>
+    <div class="modal-footer">
+      <button class="btn" style="border:1px solid var(--border);background:transparent" onclick="closeModal('resetModal')">取消</button>
+      <button class="btn btn-danger" onclick="submitReset()">确认重置</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 容器 -->
+<div id="toastContainer"></div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('fr_token') || '';
+let allPlayers = [];
+let allTasks = [];
+let refreshTimer = null;
+
+// ── Token 输入 ──
+const tokenInput = document.getElementById('tokenInput');
+tokenInput.value = token;
+tokenInput.addEventListener('change', () => {
+  token = tokenInput.value.trim();
+  localStorage.setItem('fr_token', token);
+  refreshAll();
+});
+
+// ── 页面切换 ──
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  if (id === 'players') loadPlayers();
+  if (id === 'tasks') loadTasks();
+  if (id === 'dashboard') loadDashboard();
+}
+
+// ── API 请求 ──
+async function apiFetch(path, opts = {}) {
+  const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+  try {
+    const res = await fetch(API + path, { headers, ...opts });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: e.message } };
+  }
+}
+
+// ── 状态点 ──
+function setStatus(online) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = online ? 'online' : 'error';
+  txt.textContent = online ? '已连接' : '连接失败';
+}
+
+// ── 仪表盘 ──
+async function loadDashboard() {
+  const { ok, data } = await apiFetch('/api/status');
+  setStatus(ok);
+  if (!ok) return;
+  document.getElementById('stat-players').textContent = data.players ?? '–';
+  document.getElementById('stat-tasks').textContent   = data.tasks ?? '–';
+  document.getElementById('stat-version').textContent = data.version ?? '–';
+  document.getElementById('stat-db').textContent      = data.database ?? '–';
+  const s = data.uptime || 0;
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  document.getElementById('stat-uptime').textContent = `${h}h${m}m${sec}s`;
+
+  // 快览在线玩家
+  const { ok: ok2, data: players } = await apiFetch('/api/players');
+  const el = document.getElementById('dash-player-list');
+  if (!ok2 || !Array.isArray(players) || players.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="icon">🌐</div>暂无在线玩家</div>';
+    return;
+  }
+  el.innerHTML = `<table><thead><tr><th>玩家</th><th>连续签到</th><th>已完成任务</th><th>今日在线</th></tr></thead><tbody>
+    ${players.map(p => `<tr>
+      <td><strong>${esc(p.name)}</strong></td>
+      <td><span class="badge ${p.streak>0?'yellow':'gray'}">${p.streak} 天</span></td>
+      <td>${p.completedTasks}</td>
+      <td>${fmtTime(p.onlineSeconds)}</td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+// ── 在线玩家 ──
+async function loadPlayers() {
+  const { ok, data } = await apiFetch('/api/players');
+  setStatus(ok);
+  allPlayers = ok && Array.isArray(data) ? data : [];
+  renderPlayers(allPlayers);
+
+  // 同时加载任务列表供模态框使用
+  const { data: tasks } = await apiFetch('/api/tasks');
+  if (Array.isArray(tasks)) allTasks = tasks;
+}
+
+function renderPlayers(players) {
+  const tbody = document.getElementById('playerTableBody');
+  if (players.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="icon">😶</div>暂无在线玩家</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = players.map(p => `
+    <tr>
+      <td><strong>${esc(p.name)}</strong><br><small style="color:var(--muted);font-size:11px">${p.uuid.slice(0,8)}...</small></td>
+      <td><span class="badge ${p.streak>=30?'purple':p.streak>=7?'yellow':'gray'}">${p.streak} 天</span></td>
+      <td>${fmtTime(p.onlineSeconds)}</td>
+      <td>${p.completedTasks}</td>
+      <td>${p.pendingClaim > 0 ? `<span class="badge green">${p.pendingClaim} 个</span>` : '–'}</td>
+      <td>${p.lastDailyDate || '<span style="color:var(--muted)">从未</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm btn-success" onclick="openGiveModal('${esc(p.uuid)}','${esc(p.name)}')">发奖</button>
+        <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="openResetModal('${esc(p.uuid)}','${esc(p.name)}')">重置签到</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterPlayers() {
+  const q = document.getElementById('playerSearch').value.toLowerCase();
+  renderPlayers(allPlayers.filter(p => p.name.toLowerCase().includes(q)));
+}
+
+// ── 任务配置 ──
+async function loadTasks() {
+  const { ok, data } = await apiFetch('/api/tasks');
+  setStatus(ok);
+  const grid = document.getElementById('taskGrid');
+  if (!ok || !Array.isArray(data) || data.length === 0) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="icon">📋</div>暂无任务配置</div>';
+    return;
+  }
+  allTasks = data;
+  const typeColor = { BLOCK_BREAK: 'yellow', ENTITY_KILL: 'red', ONLINE_TIME: 'green' };
+  const typeLabel = { BLOCK_BREAK: '⛏ 挖掘方块', ENTITY_KILL: '⚔ 击杀实体', ONLINE_TIME: '⏱ 在线时长' };
+  grid.innerHTML = data.map(t => `
+    <div class="task-card">
+      <h3>${esc(t.name)}</h3>
+      <div class="desc">${esc(t.description) || '无描述'}</div>
+      <div class="meta">
+        <span class="badge ${typeColor[t.type]||'gray'}">${typeLabel[t.type]||t.type}</span>
+        <span class="badge ${t.resetDaily?'green':'purple'}">${t.resetDaily?'每日重置':'一次性'}</span>
+      </div>
+      ${t.target ? `<div style="font-size:12px;color:var(--muted)">目标: <code style="background:var(--bg3);padding:1px 6px;border-radius:4px">${t.target}</code></div>` : ''}
+      <div class="task-reward">
+        目标数量: <span>${t.amount}</span>
+        ${t.rewardMoney>0 ? ` &nbsp; 金币: <span>${t.rewardMoney}</span>` : ''}
+        ${t.rewardItems>0 ? ` &nbsp; 物品: <span>${t.rewardItems}种</span>` : ''}
+        ${t.rewardCommands>0 ? ` &nbsp; 命令: <span>${t.rewardCommands}条</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── 重载配置 ──
+async function doReload() {
+  addLog('执行重载配置...', 'info');
+  const { ok, data } = await apiFetch('/api/reload', { method: 'POST', body: '{}' });
+  if (ok) {
+    toast('配置重载成功', 'success');
+    addLog('重载配置: 成功', 'ok');
+    loadDashboard();
+  } else {
+    toast('重载失败: ' + (data.error || '未知错误'), 'error');
+    addLog('重载配置: 失败 - ' + (data.error || ''), 'fail');
+  }
+}
+
+// ── 发放奖励模态框 ──
+function openGiveModal(uuid, name) {
+  document.getElementById('give-player-name').value = name;
+  document.getElementById('give-player-uuid').value = uuid;
+  const sel = document.getElementById('give-task-select');
+  sel.innerHTML = allTasks.map(t => `<option value="${esc(t.id)}">${esc(t.name)} (${t.id})</option>`).join('');
+  openModal('giveModal');
+}
+
+async function submitGiveReward() {
+  const uuid   = document.getElementById('give-player-uuid').value;
+  const taskId = document.getElementById('give-task-select').value;
+  const name   = document.getElementById('give-player-name').value;
+  closeModal('giveModal');
+  addLog(`向 FoliaReward 发放任务奖励: ${taskId}...`);
+  const { ok, data } = await apiFetch('/api/reward/give', {
+    method: 'POST',
+    body: JSON.stringify({ uuid, taskId })
+  });
+  if (ok) {
+    toast(data.message || '奖励发放成功', 'success');
+    addLog(`发放奖励: 成功`, 'ok');
+  } else {
+    toast('发放失败: ' + (data.error || ''), 'error');
+    addLog('发放奖励: 失败 - ' + (data.error || ''), 'fail');
+  }
+}
+
+// ── 重置签到模态框 ──
+function openResetModal(uuid, name) {
+  document.getElementById('reset-player-name').textContent = name;
+  document.getElementById('reset-player-uuid').value = uuid;
+  openModal('resetModal');
+}
+
+async function submitReset() {
+  const uuid = document.getElementById('reset-player-uuid').value;
+  const name = document.getElementById('reset-player-name').textContent;
+  closeModal('resetModal');
+  addLog(`重置 FoliaReward 的签到记录...`);
+  const { ok, data } = await apiFetch('/api/daily/reset', {
+    method: 'POST',
+    body: JSON.stringify({ uuid })
+  });
+  if (ok) {
+    toast(data.message || '重置成功', 'success');
+    addLog('重置签到: 成功', 'ok');
+    loadPlayers();
+  } else {
+    toast('重置失败: ' + (data.error || ''), 'error');
+    addLog('重置签到: 失败 - ' + (data.error || ''), 'fail');
+  }
+}
+
+// ── 模态框控制 ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ── Toast ──
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── 日志 ──
+function addLog(msg, cls = '') {
+  const box = document.getElementById('logBox');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + cls;
+  const now = new Date().toLocaleTimeString('zh-CN');
+  el.textContent = `[${now}] ${msg}`;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── 工具 ──
+function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtTime(sec) {
+  if (!sec) return '0m';
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60);
+  return h > 0 ? `${h}h${m}m` : `${m}m`;
+}
+
+// ── 初始化 ──
+async function refreshAll() {
+  await loadDashboard();
+}
+
+// 自动刷新
+function startAutoRefresh() {
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    const page = document.querySelector('.page.active')?.id;
+    if (page === 'page-dashboard') loadDashboard();
+    else if (page === 'page-players') loadPlayers();
+  }, 15000);
+}
+
+refreshAll();
+startAutoRefresh();
+</script>
+</body>
+</html>

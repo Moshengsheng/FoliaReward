@@ -1,0 +1,55 @@
+name: FoliaReward
+version: '1.0.0'
+main: com.example.foliareward.FoliaRewardPlugin
+api-version: '1.20'
+# 【Folia关键】声明此插件支持 Folia，否则 Folia 会拒绝加载
+folia-supported: true
+authors:
+  - YourName
+description: Folia 兼容的玩家奖励插件（进服奖励、每日签到、任务系统）
+
+softdepend:
+  - Vault
+  - LuckPerms
+  - PlaceholderAPI
+
+commands:
+  reward:
+    description: 奖励系统主命令
+    usage: /reward [gui|daily|task|group|give <玩家> <奖励ID>|reload]
+    aliases:
+      - r
+    permission: reward.use
+    permission-message: '&c您没有权限使用此命令！'
+  daily:
+    description: 打开每日签到界面
+    usage: /daily
+    permission: reward.daily
+    permission-message: '&c您没有权限使用此命令！'
+  task:
+    description: 查看任务列表
+    usage: /task
+    permission: reward.task
+    permission-message: '&c您没有权限使用此命令！'
+
+permissions:
+  reward.use:
+    description: 打开奖励主界面
+    default: true
+  reward.daily:
+    description: 每日签到
+    default: true
+  reward.task:
+    description: 查看任务
+    default: true
+  reward.group:
+    description: 领取权限组奖励
+    default: true
+  reward.admin:
+    description: 管理员权限（重载、手动发放等）
+    default: op
+    children:
+      reward.use: true
+      reward.daily: true
+      reward.task: true
+      reward.group: true

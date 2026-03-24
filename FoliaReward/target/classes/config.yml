@@ -1,0 +1,265 @@
+# ================================================================
+# FoliaReward 配置文件
+# 插件版本: 1.0.0
+# ================================================================
+
+# --- Web 管理后台 ---
+web:
+  # 是否启用 Web 管理后台（默认关闭，手动开启后重载/重启生效）
+  enabled: false
+  # 监听端口（确保防火墙已放行，仅在内网使用，不要暴露到公网）
+  port: 8080
+  # 访问令牌（必须修改！留空则禁用鉴权，极不安全）
+  token: "change_me_please"
+
+# --- 数据库设置 ---
+database:
+  # 存储方式: SQLITE 或 MYSQL
+  type: SQLITE
+  mysql:
+    host: localhost
+    port: 3306
+    database: foliareward
+    username: root
+    password: password
+    # 连接池大小（多服同步时适当增大）
+    pool-size: 10
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+
+# --- 消息设置 ---
+messages:
+  prefix: "&6[奖励] &r"
+  first-join: "&a欢迎首次加入！您已获得新手礼包！"
+  first-join-no-room: "&c您的背包空间不足，请清理后联系管理员！"
+  daily-already-claimed: "&c今天已经签到过了！明天再来吧 :)"
+  daily-success: "&a签到成功！&e连续签到 {streak} 天！"
+  daily-streak-bonus: "&6连续签到奖励已发放！"
+  group-reward-success: "&a权限组奖励已发放！"
+  group-reward-cooldown: "&c权限组奖励冷却中！剩余 {time} 秒。"
+  task-progress: "&e任务 [{task}]&7 进度: &a{current}&7/&a{target}"
+  task-completed: "&a任务 &e[{task}] &a已完成！使用 /reward task claim 领取奖励。"
+  task-claimed: "&a已领取任务 &e[{task}] &a的奖励！"
+  task-already-claimed: "&c该任务奖励已领取。"
+  task-no-completed: "&c没有可领取的已完成任务。"
+  reward-given: "&a已为 {player} 发放奖励: {reward}"
+  reward-player-offline: "&c玩家 {player} 不在线！"
+  no-permission: "&c您没有权限执行此命令！"
+  reload-success: "&a配置文件已成功重载！"
+  daily-join-notify: "&e您今天还未签到！输入 &6/daily &e领取奖励。"
+
+# --- 进服奖励 ---
+join-rewards:
+  # 首次进服奖励（只触发一次）
+  first-join:
+    enabled: true
+    # 执行的控制台命令（支持 {player} 占位符）
+    commands:
+      - "give {player} golden_apple 3"
+    # 发放金币（需要 Vault）
+    money: 1000.0
+    # 发放物品
+    items:
+      - type: DIAMOND
+        amount: 3
+        name: "&b新手礼包"
+        lore:
+          - "&7欢迎来到服务器！"
+          - "&7这是给你的初始礼物。"
+
+  # 每日首次进服奖励
+  daily-join:
+    enabled: true
+    # false = 进服时仅提示，玩家手动 /daily 领取
+    # true  = 进服时自动发放
+    auto-give: false
+    commands: []
+    money: 0.0
+    items: []
+
+# --- 每日签到奖励 ---
+daily-rewards:
+  # 连续签到额外奖励（key = 第几天）
+  streak-bonuses:
+    7:
+      commands:
+        - "give {player} diamond 1"
+      money: 500.0
+      items: []
+    14:
+      commands: []
+      money: 1000.0
+      items:
+        - type: GOLDEN_APPLE
+          amount: 5
+    30:
+      commands:
+        - "give {player} netherite_ingot 1"
+      money: 3000.0
+      items: []
+
+  # 按权限组区分签到奖励（需要 LuckPerms）
+  # 若未安装 LuckPerms，只使用 default 配置
+  groups:
+    default:
+      money: 200.0
+      items:
+        - type: GOLD_INGOT
+          amount: 10
+      commands: []
+    vip:
+      money: 500.0
+      items:
+        - type: DIAMOND
+          amount: 3
+      commands:
+        - "give {player} experience_bottle 10"
+    svip:
+      money: 1000.0
+      items:
+        - type: DIAMOND_BLOCK
+          amount: 1
+        - type: NETHERITE_SCRAP
+          amount: 2
+      commands:
+        - "give {player} experience_bottle 30"
+
+# --- 权限组专属奖励（手动 /reward group 领取，带冷却） ---
+group-rewards:
+  # 冷却时间（秒），86400 = 24小时
+  cooldown: 86400
+  groups:
+    default:
+      money: 100.0
+      items: []
+      commands: []
+    vip:
+      money: 500.0
+      items:
+        - type: DIAMOND
+          amount: 1
+      commands: []
+    svip:
+      money: 1000.0
+      items:
+        - type: DIAMOND_BLOCK
+          amount: 1
+      commands: []
+
+# --- 任务系统 ---
+tasks:
+  # 挖掘石头任务（每日重置）
+  stone_miner:
+    display-name: "&7石头矿工"
+    description: "&7挖掘 100 块石头"
+    type: BLOCK_BREAK       # 类型: BLOCK_BREAK / ENTITY_KILL / ONLINE_TIME
+    target: STONE           # 目标方块/实体类型（Material 名 或 EntityType 名）
+    amount: 100             # 目标数量
+    reset-daily: true       # 每日重置进度
+    rewards:
+      money: 50.0
+      items: []
+      commands:
+        - "give {player} iron_ingot 5"
+
+  # 钻石矿石任务（一次性成就）
+  diamond_miner:
+    display-name: "&b钻石矿工"
+    description: "&7挖掘 10 个钻石矿石"
+    type: BLOCK_BREAK
+    target: DIAMOND_ORE
+    amount: 10
+    reset-daily: false       # 一次性任务，完成后永久标记
+    rewards:
+      money: 500.0
+      items:
+        - type: DIAMOND
+          amount: 5
+      commands: []
+
+  # 深层钻石矿（1.18+）
+  deepslate_diamond_miner:
+    display-name: "&b深层钻石矿工"
+    description: "&7挖掘 5 个深层钻石矿石"
+    type: BLOCK_BREAK
+    target: DEEPSLATE_DIAMOND_ORE
+    amount: 5
+    reset-daily: false
+    rewards:
+      money: 300.0
+      items:
+        - type: DIAMOND
+          amount: 3
+      commands: []
+
+  # 击杀僵尸任务（每日重置）
+  zombie_killer:
+    display-name: "&2僵尸猎手"
+    description: "&7击杀 10 只僵尸"
+    type: ENTITY_KILL
+    target: ZOMBIE
+    amount: 10
+    reset-daily: true
+    rewards:
+      money: 100.0
+      items:
+        - type: ROTTEN_FLESH
+          amount: 10
+      commands: []
+
+  # 击杀末影龙（一次性成就）
+  ender_dragon_slayer:
+    display-name: "&5龙屠者"
+    description: "&7击败末影龙"
+    type: ENTITY_KILL
+    target: ENDER_DRAGON
+    amount: 1
+    reset-daily: false
+    rewards:
+      money: 5000.0
+      items:
+        - type: NETHER_STAR
+          amount: 1
+      commands:
+        - "broadcast &6{player} &e击败了末影龙！获得传奇奖励！"
+
+  # 在线时长任务（每日重置）
+  online_30min:
+    display-name: "&b在线达人"
+    description: "&7今日在线满 30 分钟"
+    type: ONLINE_TIME
+    target: ""              # ONLINE_TIME 不需要 target，留空即可
+    amount: 30              # 分钟
+    reset-daily: true
+    rewards:
+      money: 200.0
+      items: []
+      commands:
+        - "give {player} experience_bottle 5"
+
+  online_2hour:
+    display-name: "&6忠实玩家"
+    description: "&7今日在线满 2 小时"
+    type: ONLINE_TIME
+    target: ""
+    amount: 120
+    reset-daily: true
+    rewards:
+      money: 600.0
+      items:
+        - type: GOLDEN_APPLE
+          amount: 2
+      commands: []
+
+# --- GUI 设置 ---
+gui:
+  main:
+    title: "&6✦ 奖励中心 ✦"
+    size: 54     # 行数 * 9，必须是 9 的倍数
+  daily:
+    title: "&e✦ 每日签到 ✦"
+    size: 27
+  task:
+    title: "&b✦ 任务列表 ✦"
+    size: 54
